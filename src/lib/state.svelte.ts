@@ -1,0 +1,1 @@
+export const data: {word: string, green: number, yellow: number, remainingWords: string[]}[] = $state([])
