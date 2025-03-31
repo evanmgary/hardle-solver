@@ -1,4 +1,6 @@
 // place files you want to import through the `$lib` alias in this folder.
+import dict from './words.json'
+import { history, remainingWordsHistory } from './state.svelte'
 
 function subsets(word : string){
     
@@ -14,7 +16,9 @@ function subsets(word : string){
         return result
     }
     recursive_sub(word, 0, [], result)
-    return result.map(item => item.join())
+    console.log(result)
+    console.log(result.map(item => item.join("")))
+    return result.map(item => item.join(""))
 }
 
 export function analyzeWord(word: string, userWord: string){
@@ -38,17 +42,21 @@ export function analyzeWord(word: string, userWord: string){
     return {green: green, yellow: yellow}
 }
 
-export function findWords(word: string, history: {userWord: string, green: number, yellow: number}[], dict: string[]){
+export function findWords(word: string){
+    if (!dict.includes(word)){
+        return
+    }
     let remainingWords = [...dict]
-    let remainingWordsHistory: string[][] = []
+    remainingWordsHistory.length = 0
     let possibleWords: string[] = []
     for (let entry of history){
         //0 Green 0 Yellow Case
         if (entry.green == 0 && entry.yellow == 0){
-            const zeroregex = "[^" + entry.userWord + "]{5}"
+            const zeroregex = "[^" + entry.word + "]{5}"
             for (let w of remainingWords){
                 if (w.match(new RegExp(zeroregex))){
                     possibleWords.push(w)
+                    continue
                 }
             }
             remainingWords = [...possibleWords]
@@ -56,11 +64,11 @@ export function findWords(word: string, history: {userWord: string, green: numbe
             possibleWords = []
             continue
         }
-        const wordSubsets = subsets(entry.userWord)
+        const wordSubsets = subsets(entry.word)
         
         //Check greens
-        if (entry.green >= entry.userWord.length){
-            remainingWords = [entry.userWord]
+        if (entry.green >= entry.word.length){
+            remainingWords = [entry.word]
             remainingWordsHistory.push([...remainingWords])
             break
         }
@@ -105,7 +113,6 @@ export function findWords(word: string, history: {userWord: string, green: numbe
         //At this point both 0/0, greens, and yellow are checked. Add the remaining words to the history.
         remainingWordsHistory.push([...remainingWords])
     }
-    return remainingWordsHistory
 }
 
 function genRegexSet(subset: string){

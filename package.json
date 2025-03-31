@@ -19,6 +19,7 @@
 		"autoprefixer": "^10.4.20",
 		"bits-ui": "^0.22.0",
 		"clsx": "^2.1.1",
+		"lucide-svelte": "^0.486.0",
 		"mode-watcher": "^0.5.1",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",

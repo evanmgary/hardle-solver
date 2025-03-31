@@ -1,1 +1,2 @@
-export const data: {word: string, green: number, yellow: number, remainingWords: string[]}[] = $state([])
+export const history: {word: string, green: number, yellow: number}[] = $state([])
+export const remainingWordsHistory: string[][] = $state([])
