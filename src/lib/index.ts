@@ -16,9 +16,16 @@ function subsets(word : string){
         return result
     }
     recursive_sub(word, 0, [], result)
-    console.log(result)
-    console.log(result.map(item => item.join("")))
     return result.map(item => item.join(""))
+}
+
+export function inDict(word: string){
+    return dict.includes(word)
+}
+
+export function getRandomWord(){
+    const rng = Math.floor(Math.random() * dict.length)
+    return dict[rng]
 }
 
 export function analyzeWord(word: string, userWord: string){
@@ -43,14 +50,12 @@ export function analyzeWord(word: string, userWord: string){
 }
 
 export function findWords(word: string){
-    if (!dict.includes(word)){
-        return
-    }
     let remainingWords = [...dict]
     remainingWordsHistory.length = 0
     let possibleWords: string[] = []
     for (let entry of history){
         //0 Green 0 Yellow Case
+        console.log(entry)
         if (entry.green == 0 && entry.yellow == 0){
             const zeroregex = "[^" + entry.word + "]{5}"
             for (let w of remainingWords){
@@ -73,26 +78,32 @@ export function findWords(word: string){
             break
         }
         if (entry.green > 0){
-            const greenSubsets = wordSubsets.filter(subset => subset.length == entry.green)
+            console.log("Checking greens " + entry.green)
+            const greenRegex = genRegexGreen(entry.word, entry.green)
+            console.log(greenRegex)
             for (let w of remainingWords){
-                for (let s of greenSubsets){
-                    if (w.match(new RegExp(s))){
+                for (let r of greenRegex){
+                    if (w.match(r)){
                         possibleWords.push(w)
-                        continue
+                        break
                     }
                 }
             }
             remainingWords = [...possibleWords]
             possibleWords = []
         }
+        
         if (entry.yellow > 0){
-            const yellowSubsets = wordSubsets.filter(subset => subset.length == entry.yellow)
+            console.log("Checking yellows " + entry.yellow)
+            const yellowSubsets = wordSubsets.filter(subset => subset.length == (entry.yellow + entry.green))
+            console.log(yellowSubsets)
             //For a word from the remaining dict to pass it needs to match all generated regex from any one of the subsets
             //If the word is FENCE and we have the subset FEE from the user word FEEDS (0 green 3 yellow) it would need to pass /F/ and /E\w*E/ (which it does)
             for (let w of remainingWords){
                 for (let sub of yellowSubsets){
                     let matched = true
-                    const regexSet = genRegexSet(sub)
+                    const regexSet = genRegexYellow(sub)
+                    //console.log(regexSet)
                     for (let regex of regexSet){
                         //If a regex doesn't match stop and try the next subset
                         if (!w.match(regex)){
@@ -109,16 +120,59 @@ export function findWords(word: string){
             }
             remainingWords = [...possibleWords]
             possibleWords = []
+            //Eliminate words that match too many letters exactly if green = 0 so any exact match is disqualified
+            if (entry.green < 1){
+                const elimNum = entry.green + 1
+                console.log("Checking elim " + elimNum)
+                const elimRegex = genRegexGreen(entry.word, elimNum)
+                console.log(elimRegex)
+                const remainingWordsCopy = [...remainingWords]
+                for (let w of remainingWordsCopy){
+                    for (let r of elimRegex){
+                        if (w.match(r)){
+                            console.log("Removing " + w)
+                            remainingWords.splice(remainingWords.indexOf(w), 1)
+                            break
+                        }
+                    }
+                }
+
+            }
         }
+        
         //At this point both 0/0, greens, and yellow are checked. Add the remaining words to the history.
         remainingWordsHistory.push([...remainingWords])
     }
 }
 
-function genRegexSet(subset: string){
+function genRegexGreen(word: string, green: number){
+    const indexSubset = subsets("01234").filter(item => item.length == green).map(item => {
+        const arr = []
+        for (let letter of item){
+            arr.push(parseInt(letter))
+        }
+        return arr
+    })
+    const regexArr = []
+    for (let sub of indexSubset){
+        let str = ""
+        for (let i = 0; i < word.length; i++){
+            if (sub.includes(i)){
+                str += word[i]
+            }
+            else{
+                str += "[^" + word[i] + "]"
+            }
+        }
+        regexArr.push(new RegExp(str))
+    }
+    return regexArr
+}
+
+function genRegexYellow(subset: string){
     let result: RegExp[] = []
     //Generate an array of regex to compare to words. Necessary to account for duplicate letters. The sort helps find duplicates.
-    let sub = subset.split('').sort().join()
+    let sub = subset.split('').sort().join("")
     let prevChar = ""
     let buildRegex = ""
     //The idea here is to make a regex for each letter or group of duplicate letters in a subset
